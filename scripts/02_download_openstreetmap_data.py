@@ -3,7 +3,10 @@ import json
 import requests 
 import OSMPythonTools
 from OSMPythonTools.overpass import overpassQueryBuilder
-from src.config import CITY, DATA_DIRECTORY, TEMP_DIRECTORY
+from src import STORAGE_PATH, TMP_PATH
+from src.config import CITY
+
+DATA_DIRECTORY = STORAGE_PATH / 'osm'
 
 OUTPUT_FILENAME_PREFIX = 'osm_roads'
 
@@ -17,7 +20,7 @@ def create_selector(tag, values):
 nominatim = OSMPythonTools.nominatim.Nominatim()
 overpass = OSMPythonTools.overpass.Overpass()
 
-area_id = nominatim.query(CITY).areaId()
+area_id = 3200782 # May use nominatim.query(CITY).areaId(), although that may be not working
 highway_types = ['trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'residential', 
     'trunk_link', 'primary_link', 'secondary_link', 'tertiary_link', 'living_street', 'road']
 
@@ -27,8 +30,11 @@ result_ways = overpass.query(query, timeout=120)
 query = overpassQueryBuilder(area=area_id, elementType='way', selector=[create_selector('highway', highway_types)], out='body').replace(' out body;', '') + 'node(w); out body;'
 result_nodes = overpass.query(query, timeout=120)
 
-with open(f'{DATA_DIRECTORY}/{OUTPUT_FILENAME_PREFIX}_ways.json', 'w') as f:
+if not os.path.exists(DATA_DIRECTORY):
+    os.makedirs(DATA_DIRECTORY)
+
+with open(DATA_DIRECTORY / f'{OUTPUT_FILENAME_PREFIX}_ways.json', 'w') as f:
     json.dump(result_ways.toJSON(), f)
 
-with open(f'{DATA_DIRECTORY}/{OUTPUT_FILENAME_PREFIX}_nodes.json', 'w') as f:
+with open(DATA_DIRECTORY / f'{OUTPUT_FILENAME_PREFIX}_nodes.json', 'w') as f:
     json.dump(result_nodes.toJSON(), f)

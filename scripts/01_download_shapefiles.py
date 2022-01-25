@@ -1,13 +1,15 @@
 import os
 import requests 
-from src.config import CITY, DATA_DIRECTORY, TEMP_DIRECTORY
+from src import STORAGE_PATH, TMP_PATH
+from src.config import CITY
 
+DATA_DIRECTORY = STORAGE_PATH / 'shapefiles'
 EXTENSIONS_TO_COPY = ['.shp', '.shx', '.dbf']
 
 def download(url, filename):
-    output_dir = f'{TEMP_DIRECTORY}/'
+    output_dir = TMP_PATH
     output_file = f'file_{filename}'
-    output_path = f'{output_dir}/{output_file}'
+    output_path = output_dir / output_file
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     try:
@@ -22,7 +24,7 @@ def download(url, filename):
 
 
 def unzip(path, filename):
-    output_dir = f'{TEMP_DIRECTORY}/directory_{filename}'
+    output_dir = TMP_PATH / f'directory_{filename}'
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     try:
@@ -77,5 +79,3 @@ for link in links_to_download:
         continue
     move_correct_files(directory)
 
-if os.path.isdir(TEMP_DIRECTORY):
-    os.removedirs(TEMP_DIRECTORY)
