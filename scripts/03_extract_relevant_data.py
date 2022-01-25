@@ -25,12 +25,13 @@ for filename in os.listdir(SHAPEFILES_PATH):
         else:
             accidents_graph = nx.compose(accidents_graph, file_graph)
 
+unknown_accidents = []
 bike_accidents = []
 nonbike_accidents = []
 for node in accidents_graph.nodes(data=True):
     if 'POJ_ROWER' in node[1] and node[1]['POJ_ROWER'] > 0.0:
         bike_accidents.append(node[0])
-    elif 'POJ_ROwER' in node[1]:
+    else:
         nonbike_accidents.append(node[0])
 
 bike_accidents_graph = accidents_graph.copy()
