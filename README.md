@@ -12,3 +12,10 @@ TODO: write description
 
 All data are managed by [DVC](https://dvc.org/) tool. Data files are directly added to
 remote repository. Just run `dvc pull` to download them.
+
+### Installation
+
+```
+conda create --yes -c conda-forge -n <name> python=3.8 osmnx  
+pip install -r requirements.txt
+```
