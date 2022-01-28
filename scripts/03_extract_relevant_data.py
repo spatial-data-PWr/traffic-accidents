@@ -1,68 +1,61 @@
-import os
 import json
 import pickle as pkl
-import requests
-import networkx as nx
-import geopandas
-import OSMPythonTools
-from OSMPythonTools.overpass import overpassQueryBuilder
-from src import STORAGE_PATH, TMP_PATH
-from src.config import CITY
 
-DATA_DIRECTORY = STORAGE_PATH / 'graphs'
+import geopandas
+import geopandas as gpd
+import networkx as nx
+from geojson import Point
+from pyproj import Transformer
+from tqdm import tqdm
+
+from src import STORAGE_PATH
+
+DATA_DIRECTORY = STORAGE_PATH / 'data'
+DATA_DIRECTORY.mkdir(exist_ok=True)
 
 # Szczegóły zdarzeń
+in_proj = 'epsg:2177'
+out_proj = 'epsg:4326'
+transformer = Transformer.from_crs(in_proj, out_proj)
 
+
+Point()
 SHAPEFILES_PATH = STORAGE_PATH / 'shapefiles'
 
-accidents_graph = None
-for filename in os.listdir(SHAPEFILES_PATH):
-    path = SHAPEFILES_PATH / filename
-    if os.path.isfile(path) and 'szczegoly_zdarzen' in filename and '.shp' in filename:
+accidents = []
+for path in tqdm(
+    list(SHAPEFILES_PATH.iterdir()),
+    desc='Loading shapefiles',
+):
+    if path.is_file() and 'szczegoly_zdarzen' in path.name and path.suffix == '.shp':
         file_graph = nx.read_shp(str(path), strict=False)
-        if accidents_graph is None:
-            accidents_graph = file_graph
-        else:
-            accidents_graph = nx.compose(accidents_graph, file_graph)
 
-unknown_accidents = []
-bike_accidents = []
-nonbike_accidents = []
-for node in accidents_graph.nodes(data=True):
-    if 'POJ_ROWER' in node[1] and node[1]['POJ_ROWER'] > 0.0:
-        bike_accidents.append(node[0])
-    else:
-        nonbike_accidents.append(node[0])
+        for (x, y), data in file_graph.nodes(data=True):
+            y, x = transformer.transform(y, x)
+            accidents.append(
+                {
+                    'geometry': Point((x, y)),
+                    **data,
+                }
+            )
 
-bike_accidents_graph = accidents_graph.copy()
-nonbike_accidents_graph = accidents_graph.copy()
-
-for node in nonbike_accidents:
-    bike_accidents_graph.remove_node(node)
-
-for node in bike_accidents:
-    nonbike_accidents_graph.remove_node(node)
-
-if not os.path.exists(DATA_DIRECTORY):
-    os.makedirs(DATA_DIRECTORY)
-
-with open(DATA_DIRECTORY / 'bike_accidents_graph.pkl', 'wb') as f:
-    pkl.dump(bike_accidents_graph, f)
-
-with open(DATA_DIRECTORY / 'nonbike_accidents_graph.pkl', 'wb') as f:
-    pkl.dump(nonbike_accidents_graph, f)
+accidents_gdf = gpd.GeoDataFrame(accidents, geometry='geometry', crs=out_proj)
+accidents_gdf.to_file(
+    DATA_DIRECTORY.joinpath('accidents.geojson'),
+    driver='GeoJSON',
+)
 
 # Trasy Rowerowe
-
 bikepaths = geopandas.read_file(SHAPEFILES_PATH / 'TrasyRowerowe.shp', encoding='utf-8')
-bikepaths = bikepaths.drop(bikepaths[bikepaths['geometry'].isnull()].index)
-bikepaths = bikepaths.drop(bikepaths[bikepaths['TYP'] == 'strefa ruchu uspokojonego 20 i 30 km/h'].index)
-
-with open(DATA_DIRECTORY / 'bikepaths.pkl', 'wb') as f:
-    pkl.dump(bikepaths, f)
+bikepaths = bikepaths[~bikepaths['geometry'].isna()]
+bikepaths.crs = in_proj
+bikepaths = bikepaths.to_crs(out_proj)
+bikepaths.to_file(
+    DATA_DIRECTORY.joinpath('bikeroads.geojson'),
+    driver='GeoJSON',
+)
 
 # OSMRoads
-
 OSM_DIRECTORY = STORAGE_PATH / 'osm'
 
 with open(OSM_DIRECTORY / 'osm_roads_ways.json', 'r') as f:

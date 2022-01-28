@@ -1,0 +1,4 @@
+outs:
+- md5: c31ad969266d5de0e01ce0b25d5ddba5
+  size: 51584320
+  path: accidents.geojson
