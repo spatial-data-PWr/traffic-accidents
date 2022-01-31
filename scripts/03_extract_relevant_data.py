@@ -4,7 +4,7 @@ import pickle as pkl
 import geopandas
 import geopandas as gpd
 import networkx as nx
-from geojson import Point
+from geojson import Point, LineString
 from pyproj import Transformer
 from tqdm import tqdm
 
@@ -64,18 +64,46 @@ with open(OSM_DIRECTORY / 'osm_roads_ways.json', 'r') as f:
 with open(OSM_DIRECTORY / 'osm_roads_nodes.json', 'r') as f:
     osm_data_nodes = json.load(f)
 
-osm_graph = nx.Graph()
-nodes = {}
-for idx, element in enumerate(osm_data_nodes['elements']):
-    nodes[element['id']] = {'index': idx, 'data': (element['lat'], element['lon'])}
-    osm_graph.add_node(idx, location=(element['lat'], element['lon']))
 
-for element in osm_data_ways['elements']:
+node_map = {}
+paths = []
+for idx, element in enumerate(osm_data_nodes['elements']):
+    node_map[element['id']] = {'point': (element['lat'], element['lon'])}
+
+def tag_in_node(node, tag, values):
+    return tag in node['tags'] and (element['tags'][tag] in values if value is not None else True)
+
+def any_tag_in_node(node, tag):
+    for n_tag in node['tags']:
+        if tag in n_tag:
+            return True
+    return False
+
+for element in tqdm(osm_data_ways['elements'], desc='Converting OSM data to GeoJSON'):
     last_node = None
+    path = {}
+    path['bicycle'] = tag_in_node(element, 'bicycle', ['yes', 'use_sidepath', 'designated']) or element['tags']['']
+    path['cycleway'] = any_tag_in_node(element, 'cycleway')
+    path['oneway'] = tag_in_node(element, 'oneway', None)
+    
+    lines = []
     for node in element['nodes']:
+        if node not in node_map:
+            continue
         if last_node is not None:
-            osm_graph.add_edge(last_node, node, data=element['tags'])
+            lines.append(LineString([node_map[last_node]['point'], node_map[node]['point']]))
         last_node = node
 
-with open(DATA_DIRECTORY / 'osm_roads_graph.pkl', 'wb') as f:
-    pkl.dump(osm_graph, f)
+    path['tags'] = element['tags']
+
+    for line in lines:
+        path_c = path.copy()
+        path_c['geometry'] = line
+        paths.append(path_c)
+
+
+osm_roads_gdf = gpd.GeoDataFrame(paths, geometry='geometry', crs=out_proj)
+osm_roads_gdf.to_file(
+    DATA_DIRECTORY.joinpath('osm_roads.geojson'),
+    driver='GeoJSON',
+)
