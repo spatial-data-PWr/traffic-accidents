@@ -68,10 +68,10 @@ with open(OSM_DIRECTORY / 'osm_roads_nodes.json', 'r') as f:
 node_map = {}
 paths = []
 for idx, element in enumerate(osm_data_nodes['elements']):
-    node_map[element['id']] = {'point': (element['lat'], element['lon'])}
+    node_map[element['id']] = {'point': (element['lon'], element['lat'])}
 
 def tag_in_node(node, tag, values):
-    return tag in node['tags'] and (element['tags'][tag] in values if value is not None else True)
+    return tag in node['tags'] and (element['tags'][tag] in values if values is not None else True)
 
 def any_tag_in_node(node, tag):
     for n_tag in node['tags']:
@@ -79,13 +79,16 @@ def any_tag_in_node(node, tag):
             return True
     return False
 
+road_types = ['trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'residential', 'trunk_link', 'primary_link', 'secondary_link', 'tertiary_link', 'living_street', 'road', 'bicycle', 'cycleway']
+
 for element in tqdm(osm_data_ways['elements'], desc='Converting OSM data to GeoJSON'):
     last_node = None
     path = {}
-    path['bicycle'] = tag_in_node(element, 'bicycle', ['yes', 'use_sidepath', 'designated']) or element['tags']['']
-    path['cycleway'] = any_tag_in_node(element, 'cycleway')
+    path['bicycle'] = tag_in_node(element, 'bicycle', ['yes', 'use_sidepath', 'designated']) or element['tags']['highway'] == 'bicycle' or tag_in_node(element, 'oneway:bicycle', None)
+    path['cycleway'] = any_tag_in_node(element, 'cycleway') or element['tags']['highway'] == 'cycleway' or tag_in_node(element, 'cyclestreet', None)
     path['oneway'] = tag_in_node(element, 'oneway', None)
-    
+    path['highway'] = element['tags']['highway']
+    path['is_road'] = element['tags']['highway'] in road_types
     lines = []
     for node in element['nodes']:
         if node not in node_map:

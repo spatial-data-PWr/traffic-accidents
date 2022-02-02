@@ -1,0 +1,4 @@
+outs:
+- md5: 78013acc018630b2470ffe4890e760d3
+  size: 29644401
+  path: osm_roads_nodes.json

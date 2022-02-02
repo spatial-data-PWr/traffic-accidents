@@ -17,18 +17,18 @@ def create_selector(tag, values):
     result = result[0:-1] + '"'
     return result
 
-nominatim = OSMPythonTools.nominatim.Nominatim()
+highway_types = ['trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'residential', 
+    'trunk_link', 'primary_link', 'secondary_link', 'tertiary_link', 'living_street', 'road', 'bicycle', 'cycleway', 'path']
+
 overpass = OSMPythonTools.overpass.Overpass()
 
-area_id = 3200782 # May use nominatim.query(CITY).areaId(), although that may be not working
-highway_types = ['trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'residential', 
-    'trunk_link', 'primary_link', 'secondary_link', 'tertiary_link', 'living_street', 'road']
+area_q = 'area(id:3600451516)->.searchArea;'
+highway_tags = '"highway"'#create_selector('highway', highway_types)
+way_query = area_q + '(way[' + highway_tags + '](area.searchArea);); out body;'
+node_query = area_q + '(way[' + highway_tags + '](area.searchArea);); node(w); out body;'
 
-query = overpassQueryBuilder(area=area_id, elementType='way', selector=[create_selector('highway', highway_types)], out='body')
-result_ways = overpass.query(query, timeout=120)
-
-query = overpassQueryBuilder(area=area_id, elementType='way', selector=[create_selector('highway', highway_types)], out='body').replace(' out body;', '') + 'node(w); out body;'
-result_nodes = overpass.query(query, timeout=120)
+result_ways = overpass.query(way_query, timeout=120)
+result_nodes = overpass.query(node_query, timeout=120)
 
 if not os.path.exists(DATA_DIRECTORY):
     os.makedirs(DATA_DIRECTORY)
