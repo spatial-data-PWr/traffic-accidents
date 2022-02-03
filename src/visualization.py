@@ -10,7 +10,7 @@ def convert_dict_list_to_counts_dataframe(dict_list):
 
 def interpolate(minimum, current, maximum, c1, c2, mid_color=None, mid_value=None):
     if mid_color is not None and mid_value is not None:
-        if force_mid < current:
+        if mid_value < current:
             return interpolate(mid_value, current, maximum, mid_color, c2)
         else:
             return interpolate(minimum, current, mid_value, c1, mid_color)
@@ -37,6 +37,8 @@ def create_smooth_choropleth_layers(dataframe, key_column_name, count_column_nam
 
     if force_min is None or force_max is None:
         for _, row in dataframe.iterrows():
+            if row[count_column_name] != row[count_column_name]:
+                continue
             if maximum_active is None or row[count_column_name] > maximum_active:
                 maximum_active = row[count_column_name]
             if minimum_active is None or row[count_column_name] < minimum_active:
@@ -52,9 +54,9 @@ def create_smooth_choropleth_layers(dataframe, key_column_name, count_column_nam
                 to_delete.append(gd_region)
         for t_d in to_delete:
             sub_geojson['features'].remove(t_d)
-        if len(sub_geojson['features']) == 0:
+        if len(sub_geojson['features']) == 0 or row[count_column_name] != row[count_column_name]:
             continue
-        color_tuple = interpolate(minimum_active, row[count_column_name], maximum_active, beg_color, end_color, mid_color, force_mid)
+        color_tuple = interpolate(minimum_active, row[count_column_name], maximum_active, beg_color, end_color, mid_color=mid_color, mid_value=force_mid)
         
         color = f'#{color_tuple[0]:0>2x}{color_tuple[1]:0>2x}{color_tuple[2]:0>2x}'
         result.append(folium.Choropleth(

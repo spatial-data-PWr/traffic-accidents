@@ -1,11 +1,12 @@
 def points_to_closest_edges(points, edges, max_dist=None):
-    joined_points = points.to_crs('epsg:2177').sjoin_nearest(edges.to_crs('epsg:2177'), how='left', max_distance=max_dist)
+    joined_points = points.to_crs('epsg:2180').sjoin_nearest(edges.to_crs('epsg:2180'), how='left', max_distance=max_dist)
     result = {}
     for _, p in joined_points.iterrows():
         edge = p['index_right']
-        if edge not in result:
-            result[edge] = []
-        result[edge].append(p)
+        if edge == edge:
+            if edge not in result:
+                result[edge] = []
+            result[edge].append(p)
     return result
 
 # def __ptce_newer(points, edges, max_dist=0.01): #Only for the record
