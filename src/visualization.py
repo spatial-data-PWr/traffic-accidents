@@ -17,19 +17,19 @@ def create_smooth_choropleth_layers(dataframe, key_column_name, count_column_nam
     if mid_color is not None:
         mid_color = matplotlib.colors.to_rgb(mid_color)
         mid_color = mid_color[0] * 255, mid_color[1] * 255, mid_color[2] * 255
-    
-    def interpolate(smallest, current, maximum, c1, c2, _inter=None):
+
+    def interpolate(minimum, current, maximum, c1, c2, _inter=None):
         if mid_color is not None and _inter is None:
             if force_mid < current:
                 return interpolate(force_mid, current, maximum, mid_color, c2, True)
             else:
-                return interpolate(smallest, current, force_mid, c1, mid_color, True)
+                return interpolate(minimum, current, force_mid, c1, mid_color, True)
         
         if current > maximum:
             current = maximum
-        w = (current - smallest) / (maximum - smallest)
+        w = (current - minimum) / (maximum - minimum)
 
-        return int(c1[0]*w + c2[0]*(1-w)), int(c1[1]*w + c2[1]*(1-w)), int(c1[2]*w + c2[2]*(1-w)) 
+        return int(c2[0]*w + c1[0]*(1-w)), int(c2[1]*w + c1[1]*(1-w)), int(c2[2]*w + c1[2]*(1-w)) 
     maximum_active = force_max
     minimum_active = force_min
 
@@ -53,8 +53,7 @@ def create_smooth_choropleth_layers(dataframe, key_column_name, count_column_nam
         if len(sub_geojson['features']) == 0:
             continue
         color_tuple = interpolate(minimum_active, row[count_column_name], maximum_active, beg_color, end_color)
-        print(color_tuple)
-        print(row[count_column_name])
+        
         color = f'#{color_tuple[0]:0>2x}{color_tuple[1]:0>2x}{color_tuple[2]:0>2x}'
         result.append(folium.Choropleth(
             geo_data=sub_geojson,
