@@ -8,3 +8,4 @@ pandas==1.4.0
 requests==2.27.1
 shapely==0.7.5
 tqdm==4.62.3
+OSMnx
